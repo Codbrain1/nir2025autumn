@@ -9,16 +9,17 @@ set(CMAKE_CXX_STANDART_REQUIRED ON)
 
 add_executable(galaxymodel)
 target_sources( galaxymodel PRIVATE
-    src/DIRSUMM/KDK.cpp
-    src/DIRSUMM/RK4.cpp
-    src/SPH/KDK.cpp
-    src/SPH/RK4.cpp
-    src/init_condition.cpp
+    
     src/main.cpp
 )
 target_include_directories(galaxymodel PRIVATE
-    include/Animation.h
-    include/Buff.h
-    include/BUffer.h
-    include/ParticleContainer.h
+    includes/Animation.h
+    includes/Buff.h
+    includes/BUffer.h
+    includes/ParticleContainer.h
+    includes/DIRSUMM/KDK.h
+    includes/DIRSUMM/RK4.h
+    includes/SPH/KDK.h
+    includes/SPH/RK4.h
+    includes/init_condition.h
 )

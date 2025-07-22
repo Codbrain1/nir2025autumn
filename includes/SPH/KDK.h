@@ -1,4 +1,5 @@
-namespace DirectSumm
+#pragma once
+namespace SPH
 {
     namespace KDK
     {

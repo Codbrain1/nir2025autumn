@@ -6,6 +6,9 @@ class Buffer
 {
     public:
     std::vector<Buff<T>> buffer;
+    Buffer(T& ps){}
+    void push_buff(T& ps){}
+    void clear(){}
     void saveToFile();
     void saveToBinaryFile();
     void saveToFile_async();

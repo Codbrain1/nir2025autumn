@@ -1,3 +1,4 @@
+#pragma once
 namespace DirectSumm
 {
     namespace RK4
