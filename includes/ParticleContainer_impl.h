@@ -1,4 +1,3 @@
-#include "../includes/ParticleContainer.h"
 //for type double
 template<>
 class ParticleContainer<double>
@@ -13,7 +12,7 @@ class ParticleContainer<double>
     double Px, Py, Pz; 
     double Lx, Ly, Lz;
     double t, dt;
-    static const double G=1;
+    const double G=1;
     int N;
     //methods
 
@@ -99,7 +98,7 @@ class ParticleContainer<long double>
     long double Px, Py, Pz; 
     long double Lx, Ly, Lz;
     long double t, dt;
-    static const long double G=1L;
+    const long double G=1L;
     int N;
 
     //methods

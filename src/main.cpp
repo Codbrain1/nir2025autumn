@@ -12,7 +12,8 @@ int  main()
 {
     // создание системы частиц
     int N=1000;
-    int buff_size=5;
+    int buff_size_posit=5;
+    int buff_size_conv_laws=10;
     double M=1;
     double t1=0,t2=1;
 
@@ -54,8 +55,8 @@ int  main()
     }
 
     //буффер для быстрого сохранения системы частиц
-    Buffer psbuffer(ps,Filetype::bin);
-    ps.SaveToFile_all(
+    Buffer<double, Filetype::bin> psbuffer;
+    ps.SaveToBinaryFile_all(
         psbuffer.get_file_positions(),
         psbuffer.get_file_conv_laws()
     );
@@ -71,12 +72,19 @@ int  main()
         //сохранение в файлы (опционально)
         if(counter%10==0)
         {
-            psbuffer.push_buff(ps);
+            psbuffer.push_buff_posit(ps);
             counter=1;
-            if(psbuffer.buffer.size()==buff_size)
+            if(psbuffer.size_buff_posit()>=buff_size_posit)
             {
-                psbuffer.saveToFile();
-                psbuffer.clear();
+                psbuffer.saveToFile_position();
+            }
+        }
+        if(counter%5==0)
+        {
+            psbuffer.push_buff_conv_laws(ps);
+            if(psbuffer.size_buff_conv_laws()>=buff_size_conv_laws)
+            {
+                psbuffer.saveToFile_conv_laws();
             }
         }
 
