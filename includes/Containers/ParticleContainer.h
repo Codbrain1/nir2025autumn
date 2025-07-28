@@ -29,4 +29,5 @@ class ParticleContainer
     void SaveToBinaryFile_positions(std::ofstream& positions);
     void SaveToBinaryFile_conv_laws(std::ofstream& conv_laws);
 };
-#include "../includes/ParticleContainer_impl.h"
+
+#include "ParticleContainer.tpp"

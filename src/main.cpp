@@ -1,12 +1,11 @@
-#include "../includes/Animation.h"
-#include "../includes/Buffer.h"
-#include "../includes/ParticleContainer.h"
-#include "../includes/DIRSUMM/KDK.h"
-#include "../includes/DIRSUMM/RK4.h"
-#include "../includes/SPH/KDK.h"
-#include "../includes/SPH/RK4.h"
-#include "../includes/init_condition.h"
-
+#include "visualisation/Animation.h"
+#include "Containers/Buffer.h"
+#include "Containers/ParticleContainer.h"
+#include "numerics/DIRSUMM/KDK.h"
+#include "numerics/DIRSUMM/RK4.h"
+#include "numerics/SPH/KDK.h"
+#include "numerics/SPH/RK4.h"
+#include "init/init_condition.h"
 #include<filesystem>
 int  main()
 {
@@ -16,13 +15,13 @@ int  main()
     int buff_size_conv_laws=10;
     double M=1;
     double t1=0,t2=1;
-
+    double solt =42;
     ParticleContainer<double> ps(N,M,t1);
     
     //установка начальных условий системы
-    InitialConditoin::set_uniform_disk(ps); 
+    InitialConditoin::set_uniform_disk(ps,solt); 
     InitialConditoin::set_circle_velocity(ps);
-    ps.t=0.001;
+    ps.dt=0.0;
 
     //вычисление начальных законов сохранения
     DirectSumm::KDK::calculate_forces(ps);              //TODO: вычисление сил

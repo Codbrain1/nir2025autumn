@@ -1,9 +1,10 @@
 #pragma once
 #include<fstream>
-#include "Buff.h"
 #include<vector>
 #include<type_traits>
-#include "../includes/ParticleContainer.h"
+
+#include "Buff.h"
+#include "ParticleContainer.h"
 enum Filetype{txt,bin};
 template<class T,Filetype type>
 class Buffer
