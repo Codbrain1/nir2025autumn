@@ -25,7 +25,7 @@ class ParticleContainer
     void SaveToFile_positions(std::ofstream& positions);
     void SaveToFile_conv_laws(std::ofstream& conv_laws);
 
-    void SaveToBinaryFile_all(std::ofstream& positions, std::ofstream& conv_laws); //TODO: реализовать сохранение в бинарные файлы
+    void SaveToBinaryFile_all(std::ofstream& positions, std::ofstream& conv_laws);
     void SaveToBinaryFile_positions(std::ofstream& positions);
     void SaveToBinaryFile_conv_laws(std::ofstream& conv_laws);
 };

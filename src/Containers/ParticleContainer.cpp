@@ -22,7 +22,7 @@ void ParticleContainer<double>::SaveToFile_all(std::ofstream& positions, std::of
             positions<<x[i]<<"\t"<<y[i]<<"\t"<<z[i]<<"\t"
             <<vx[i]<<"\t"<<vy[i]<<vz[i]<<"\n";
         }
-        // TODO: запись полной энергии и квадратов импульса и момента импульса системы
+        // запись полной энергии и квадратов импульса и момента импульса системы
         conv_laws<<std::setprecision(13)<<t<<"\t"<<E<<"\t"<<Px*Px+Py*Py+Pz*Pz<<"\t"<<Lx*Lx+Ly*Ly+Lz*Lz<<"\n";
 
     }
@@ -37,7 +37,7 @@ void ParticleContainer<double>::SaveToFile_positions(std::ofstream& positions)
     }
 void ParticleContainer<double>::SaveToFile_conv_laws(std::ofstream& conv_laws)
     {
-        // TODO: запись полной энергии и квадратов импульса и момента импульса системы
+        // запись полной энергии и квадратов импульса и момента импульса системы
         conv_laws<<std::setprecision(13)<<t<<"\t"<<E<<"\t"<<Px*Px+Py*Py+Pz*Pz<<"\t"<<Lx*Lx+Ly*Ly+Lz*Lz<<"\n";
 
     }
@@ -91,7 +91,7 @@ void ParticleContainer<long double>::SaveToFile_all(std::ofstream& positions, st
             positions<<x[i]<<"\t"<<y[i]<<"\t"<<z[i]<<"\t"
             <<vx[i]<<"\t"<<vy[i]<<vz[i]<<"\n";
         }
-        // TODO: запись полной энергии и квадратов импульса и момента импульса системы
+        // запись полной энергии и квадратов импульса и момента импульса системы
         conv_laws<<std::setprecision(16)<<t<<"\t"<<E<<"\t"<<Px*Px+Py*Py+Pz*Pz<<"\t"<<Lx*Lx+Ly*Ly+Lz*Lz<<"\n";
 
     }
@@ -106,7 +106,7 @@ void ParticleContainer<long double>::SaveToFile_positions(std::ofstream& positio
     }
 void ParticleContainer<long double>::SaveToFile_conv_laws(std::ofstream& conv_laws)
     {
-        // TODO: запись полной энергии и квадратов импульса и момента импульса системы
+        // запись полной энергии и квадратов импульса и момента импульса системы
         conv_laws<<std::setprecision(16)<<t<<"\t"<<E<<"\t"<<Px*Px+Py*Py+Pz*Pz<<"\t"<<Lx*Lx+Ly*Ly+Lz*Lz<<"\n";
 
     }

@@ -10,17 +10,19 @@
 int  main()
 {
     // создание системы частиц
-    int N=1000;
-    int buff_size_posit=5;
-    int buff_size_conv_laws=10;
-    double M=1;
-    double t1=0,t2=1;
-    double solt =42;
+    int N=1000;             //число частиц
+    int buff_size_posit=5;  //размер буфера позиций частиц
+    int buff_size_conv_laws=10; // размер буфера законов сохранения
+    double t1=0,t2=1; //интервал интегрирования
+    double solt =42;   //соль для задания распределения частиц
+    double M=1;       //суммарная масса частиц
+    double R=1;       // радиус диска
+
     ParticleContainer<double> ps(N,M,t1);
     
     //установка начальных условий системы
-    InitialConditoin::set_uniform_disk(ps,solt); 
-    InitialConditoin::set_circle_velocity(ps);
+    InitialConditoin::set_uniform_disk(ps,solt,R); 
+    InitialConditoin::set_circle_velocity(ps,M,R);
     ps.dt=0.0;
 
     //вычисление начальных законов сохранения
@@ -100,5 +102,4 @@ int  main()
         }
     }
     
-
 }
