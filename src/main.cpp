@@ -61,37 +61,43 @@ int  main()
     );
 
     int counter=1;
-
-    while(ps.t<=t2)
+    #pragma omp parallel
     {
-        //вычисление положения частиц
-        DirectSumm::KDK::next_step(ps);
-        DirectSumm::KDK::calculate_conversation_laws(ps);
-
-        //сохранение в файлы (опционально)
-        if(counter%10==0)
+        #pragma omp single
         {
-            psbuffer.push_buff_posit(ps);
-            counter=1;
-            if(psbuffer.size_buff_posit()>=buff_size_posit)
+            while(ps.t<=t2)
             {
-                psbuffer.saveToFile_position();
-            }
-        }
-        if(counter%5==0)
-        {
-            psbuffer.push_buff_conv_laws(ps);
-            if(psbuffer.size_buff_conv_laws()>=buff_size_conv_laws)
-            {
-                psbuffer.saveToFile_conv_laws();
-            }
-        }
+                //вычисление положения частиц
+                DirectSumm::KDK::next_step(ps);
+                DirectSumm::KDK::calculate_conversation_laws(ps);
 
-        //визуализация (опционально)
-        //...
-        
-        ps.t+=ps.dt;
-        ++counter;
+                //сохранение в файлы (опционально)
+                if(counter % 10 == 0)
+                {
+                    psbuffer.push_buff_posit(ps);
+                    counter=1;
+                    if(psbuffer.size_buff_posit()>=buff_size_posit)
+                    {
+                        psbuffer.saveToFile_position();
+                    }
+                }
+                if(counter % 5 == 0)
+                {
+                    psbuffer.push_buff_conv_laws(ps);
+                    if(psbuffer.size_buff_conv_laws()>=buff_size_conv_laws)
+                    {
+                        psbuffer.saveToFile_conv_laws();
+                    }
+                }
+
+                //визуализация (опционально)
+                //...
+                
+                ps.t+=ps.dt;
+                ++counter;
+            }
+            #pragma omp taskwait
+        }
     }
     
 

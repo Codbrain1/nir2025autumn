@@ -73,25 +73,19 @@ class Buffer
     
     void saveToFile_position()
     {
-        if constexpr (type==Filetype::txt)
+        for(int i=0;i<buffer_posit.size();++i)
         {
-
-            file_positions<<std::setprecision(std::is_same_v<T,double>? 13 : 16);
-            for(int i=0;i<buffer_posit.size();++i)
+            auto& b = buffer_posit[i];
+            if constexpr (type==Filetype::txt)
             {
-                auto& b = buffer_posit[i];
+                file_positions<<std::setprecision(std::is_same_v<T,double>? 13 : 16);                
                 file_positions<<b.t<<"\n"<<b.N<<"\n";
-
                 for(int j=0;j<b.N;++j)
                 {
                     file_positions<<b.x[j]<<"\t"<<b.y[j]<<"\t"<<b.z[j]<<"\t"
                     <<b.vx[j]<<"\t"<<b.vy[j]<<b.vz[j]<<"\n";
                 }
-            }
-            buffer_posit.clear();
-        }else
-        {
-            for(int i=0;i<buffer_posit.size();++i)
+            }else
             {
                 auto& b = buffer_posit[i];
                 file_positions.write(reinterpret_cast<char*>(&b.t),sizeof(T)); //запись момента времени в бинарный файл
@@ -102,8 +96,8 @@ class Buffer
                     file_positions.write(reinterpret_cast<char*>(&temp),6*sizeof(T));
                 }
             }
-            buffer_posit.clear();
         }
+        buffer_posit.clear();
     }
     void saveToFile_conv_laws()
     {
@@ -115,7 +109,6 @@ class Buffer
                 auto& b =buffer_conv_laws[i];
                 file_conv_laws<<b.t<<"\t"<<b.E<<"\t"<<b.P_module2<<"\t"<<b.L_module2<<"\n";
             }
-            buffer_conv_laws.clear();
         }else
         {
             for(int i=0;i<buffer_conv_laws.size();++i)
@@ -124,11 +117,73 @@ class Buffer
                 T temp[4]={b.t, b.E, b.P_module2, b.L_module2};
                 file_conv_laws.write(reinterpret_cast<char*>(&temp),4*sizeof(T));
             }
-            buffer_conv_laws.clear();
         }
+        buffer_conv_laws.clear();
     }
 
-    inline void saveToFile_position_async();
-    inline void saveToFile_conv_laws_async();
+    inline void saveToFile_position_async()
+    {
+        std::vector<Buff_posit<T>> buffer_copy = std::move(buffer_posit);
+        buffer_posit.clear();
+        #pragma omp task
+        {
+            for(int i=0;i<buffer_copy.size();i++)
+            {
+                #pragma omp critical(file_positions)
+                {
+                    auto& b=buffer_copy[i];
+                    if constexpr (type==Filetype::txt)
+                    {
+                        file_positions<<std::setprecision(std::is_same_v<T,double>? 13 : 16);
+                        file_positions<<b.t<<"\n"<<b.N<<"\n";
+                        for(int j=0;j<b.N;++j)
+                        {
+                            file_positions<<b.x[j]<<"\t"<<b.y[j]<<"\t"<<b.z[j]<<"\t"
+                            <<b.vx[j]<<"\t"<<b.vy[j]<<b.vz[j]<<"\n";
+                        }
+                    }else
+                    {
+                        file_positions.write(reinterpret_cast<char*>(&b.t),sizeof(T)); //запись момента времени в бинарный файл
+                        file_positions.write(reinterpret_cast<char*>(&b.N),sizeof(T));
+                        for(int j=0;j<b.N;++j)
+                        {
+                            T temp[6]={b.x[j], b.y[j], b.z[j], b.vx[j], b.vy[j], b.vz[j]}; //запись данных позиций и скоростей в бинарный файл
+                            file_positions.write(reinterpret_cast<char*>(&temp),6*sizeof(T));
+                        }
+                    }
+                    file_positions.flush();
+                }
+            }
+        }
+    }
+    inline void saveToFile_conv_laws_async()
+    {
+        std::vector<Buff_conv_laws<T>> buffer_copy = std::move(buffer_conv_laws);
+        buffer_conv_laws.clear();
+        #pragma omp task
+        {
+            #pragma omp critical(file_conv_laws)
+            {
+                if constexpr (type==Filetype::txt)
+                {
+                    file_conv_laws<<std::setprecision(std::is_same_v<T,double>? 13 : 16);
+                    for(int i=0;i<buffer_conv_laws.size();++i)
+                    {
+                        auto& b =buffer_conv_laws[i];
+                        file_conv_laws<<b.t<<"\t"<<b.E<<"\t"<<b.P_module2<<"\t"<<b.L_module2<<"\n";
+                    }
+                }else
+                {
+                    for(int i=0;i<buffer_conv_laws.size();++i)
+                    {
+                        auto& b = buffer_conv_laws[i];
+                        T temp[4]={b.t, b.E, b.P_module2, b.L_module2};
+                        file_conv_laws.write(reinterpret_cast<char*>(&temp),4*sizeof(T));
+                    }
+                }
+                file_conv_laws.flush();
+            }
+        }
+    }
 
 };
