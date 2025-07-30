@@ -8,3 +8,4 @@ documentation/
 .cache/
 */.cache/
 compile_commands.json
+.clangd
