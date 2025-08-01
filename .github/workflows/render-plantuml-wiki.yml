@@ -21,6 +21,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
+      - name: Install curl for URL validation
+        run: sudo apt-get update && sudo apt-get install -y curl
       - name: List Wiki files
         run: |
           echo "Listing files in Wiki repository:"
@@ -47,9 +49,17 @@ jobs:
                   echo "Found PlantUML diagram in $file:"
                   echo "$diagram"
                   echo "$diagram" > temp.puml
-                  encoded=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.stdin.read(), safe=''))" < temp.puml)
-                  url="http://www.plantuml.com/plantuml/svg/~h${encoded}"
+                  # Кодирование PlantUML для URL
+                  encoded=$(python3 -c "import zlib, base64; text = open('temp.puml', 'rb').read(); compressed = zlib.compress(text)[2:-4]; print(base64.b64encode(compressed).decode('ascii').replace('+', '-').replace('/', '_'))")
+                  url="http://www.plantuml.com/plantuml/svg/$encoded"
                   echo "Generated URL: $url" >> diagrams/urls.txt
+                  # Проверяем доступность URL
+                  if curl --output /dev/null --silent --head --fail "$url"; then
+                    echo "URL is valid: $url"
+                  else
+                    echo "URL is invalid (404 or other error): $url"
+                    exit 1
+                  fi
                   # Проверяем наличие ![Diagram]
                   if grep -A1 '``` *plantuml' "$file" | grep -q '!\[Diagram\]'; then
                     echo "Replacing existing ![Diagram] in $file"
