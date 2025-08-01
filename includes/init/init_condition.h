@@ -14,6 +14,5 @@ void set_exponential_disk(ParticleContainer<long double>& ps, long double solt,
                           long double R);  // TODO: реализовать задание экспоненциального диска
 
 void set_circle_velocity(ParticleContainer<long double>& ps, long double M, long double R);
-
 void set_uniform_disk(ParticleContainer<long double>& ps, long double solt, long double R);
 }  // namespace InitialCondition

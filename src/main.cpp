@@ -53,7 +53,7 @@ int main()
     }
 
     // буффер для быстрого сохранения системы частиц
-    Buffer<double, Filetype::bin> psbuffer;
+    Buffer<double, Filetype::bin> psbuffer("results/positions", "results/conversation_laws");
     ps.SaveToBinaryFile_all(psbuffer.get_file_positions(), psbuffer.get_file_conv_laws());
 
     int counter = 1;
