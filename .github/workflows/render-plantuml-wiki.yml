@@ -25,6 +25,16 @@ jobs:
         run: |
           echo "Listing files in Wiki repository:"
           ls -la *.md || echo "No .md files found"
+      - name: Show file contents
+        run: |
+          echo "Contents of .md files:"
+          for file in *.md; do
+            if [ -f "$file" ]; then
+              echo "File: $file"
+              cat "$file"
+              echo "----"
+            fi
+          done
       - name: Process PlantUML diagrams
         run: |
           mkdir -p diagrams
@@ -40,12 +50,13 @@ jobs:
                   encoded=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.stdin.read(), safe=''))" < temp.puml)
                   url="http://www.plantuml.com/plantuml/svg/~h${encoded}"
                   echo "Generated URL: $url" >> diagrams/urls.txt
-                  # Проверяем, есть ли строка ![Diagram]()
-                  if grep -A1 '``` *plantuml' "$file" | grep -q '![Diagram]()'; then
-                    sed -i "/``` *plantuml/,/```/s|!\[Diagram\]([^)]*)|![Diagram]($url)|" "$file"
+                  # Проверяем наличие ![Diagram]()
+                  if grep -A1 '``` *plantuml' "$file" | grep -q '!\[Diagram\]'; then
+                    echo "Replacing existing ![Diagram] in $file"
+                    sed -i "/\`\`\` *plantuml/,/\`\`\`/ {/\!\[Diagram\]/ s|!\[Diagram\].*|![Diagram]($url)|}" "$file"
                   else
-                    # Добавляем ![Diagram](URL) после блока plantuml
-                    sed -i "/``` *plantuml/,/```/a ![Diagram]($url)" "$file"
+                    echo "Appending ![Diagram] after plantuml block in $file"
+                    sed -i "/\`\`\` *plantuml/,/\`\`\`/ {/\`\`\`/a \!\[Diagram\]($url)}" "$file"
                   fi
                   counter=$((counter + 1))
                 fi
@@ -59,6 +70,14 @@ jobs:
         run: |
           echo "Modified files:"
           git status
+          echo "Contents of modified .md files:"
+          for file in *.md; do
+            if [ -f "$file" ]; then
+              echo "File: $file"
+              cat "$file"
+              echo "----"
+            fi
+          done
       - name: Commit changes to Wiki
         run: |
           git config user.name "GitHub Actions Bot"
