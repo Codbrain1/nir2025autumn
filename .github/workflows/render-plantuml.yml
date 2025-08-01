@@ -3,16 +3,19 @@ name: Render PlantUML Diagrams in Wiki
 on:
   push:
     branches:
-      - main  # Триггер при пуше в основную ветку
-  workflow_dispatch:  # Позволяет запускать вручную
+      - main
+  workflow_dispatch:
 
 jobs:
   render-plantuml-wiki:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Права на запись в репозиторий и Wiki
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Wiki repository
+        uses: actions/checkout@v4
         with:
-          repository: ${{ github.repository }}.wiki  # Клонируем Wiki-репозиторий
+          repository: ${{ github.repository }}.wiki
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install Python
         uses: actions/setup-python@v5
@@ -24,14 +27,12 @@ jobs:
           counter=0
           for file in *.md; do
             if grep -q '```plantuml' "$file"; then
+              echo "Processing $file"
               while IFS= read -r diagram; do
                 if [[ -n "$diagram" ]]; then
-                  # Извлекаем код PlantUML
                   echo "$diagram" > temp.puml
-                  # Кодируем для PlantUML Server
-                  encoded=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.stdin.read()))" < temp.puml)
-                  echo "http://www.plantuml.com/plantuml/svg/~h${encoded}" > "diagrams/diagram_${counter}.url"
-                  # Обновляем Markdown
+                  encoded=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.stdin.read(), safe=''))" < temp.puml)
+                  echo "http://www.plantuml.com/plantuml/svg/~h${encoded}" >> diagrams/urls.txt
                   sed -i "/```plantuml/,/```/s|!\[Diagram\](.*)|![Diagram](http://www.plantuml.com/plantuml/svg/~h${encoded})|" "$file"
                   counter=$((counter + 1))
                 fi
