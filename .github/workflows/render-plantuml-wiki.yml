@@ -44,38 +44,36 @@ jobs:
           for file in *.md; do
             if [ -f "$file" ] && grep -q '``` *plantuml' "$file"; then
               echo "Processing $file"
-              # Извлекаем весь блок plantuml как одну строку
-              diagrams=$(awk '/``` *plantuml/{flag=1; block=""; next} /```/{if (flag) {print block; flag=0; block=""} next} flag{block=block $0 "\n"}' "$file")
-              if [ -n "$diagrams" ]; then
-                echo "$diagrams" | while IFS= read -r diagram; do
-                  if [[ -n "$diagram" && "$diagram" != *"!["* ]]; then
-                    echo "Found PlantUML diagram in $file:"
-                    echo "$diagram"
-                    echo -e "$diagram" > temp.puml
-                    encoded=$(python3 -c "import zlib, base64; text = open('temp.puml', 'rb').read(); compressed = zlib.compress(text)[2:-4]; print(base64.b64encode(compressed).decode('ascii').replace('+', '-').replace('/', '_'))")
-                    url="http://www.plantuml.com/plantuml/svg/$encoded"
-                    echo "Generated URL: $url" >> diagrams/urls.txt
-                    # Проверяем доступность URL
-                    if curl --output /dev/null --silent --head --fail "$url"; then
-                      echo "URL is valid: $url"
-                    else
-                      echo "URL is invalid (404 or other error): $url"
-                      exit 1
-                    fi
-                    # Проверяем наличие ![Diagram]
-                    if grep -A1 '``` *plantuml' "$file" | grep -q '!\[Diagram\]'; then
-                      echo "Replacing existing ![Diagram] in $file"
-                      sed -i "/\`\`\` *plantuml/,/\`\`\`/ s|!\[Diagram\].*|![Diagram]($url)|" "$file"
-                    else
-                      echo "Appending ![Diagram] after plantuml block in $file"
-                      sed -i "/\`\`\` *plantuml/,/\`\`\`/ {/\`\`\`/ s|$|\n![Diagram]($url)|}" "$file"
-                    fi
-                    counter=$((counter + 1))
+              # Извлекаем все блоки plantuml
+              awk '/``` *plantuml/{flag=1; block=""; next} /```/{if (flag) {print block; flag=0} next} flag{block=block $0 "\n"}' "$file" | while IFS= read -r diagram; do
+                if [[ -n "$diagram" && "$diagram" != *"!["* ]]; then
+                  echo "Found PlantUML diagram in $file:"
+                  echo "$diagram"
+                  echo -e "$diagram" > temp.puml
+                  # Удаляем BOM и лишние пробелы
+                  sed -i 's/\xEF\xBB\xBF//' temp.puml
+                  sed -i 's/^[ \t]*//;s/[ \t]*$//' temp.puml
+                  encoded=$(python3 -c "import zlib, base64; text = open('temp.puml', 'rb').read(); compressed = zlib.compress(text)[2:-4]; print(base64.b64encode(compressed).decode('ascii').replace('+', '-').replace('/', '_'))")
+                  url="http://www.plantuml.com/plantuml/svg/$encoded"
+                  echo "Generated URL: $url" >> diagrams/urls.txt
+                  # Проверяем доступность URL
+                  if curl --output /dev/null --silent --head --fail "$url"; then
+                    echo "URL is valid: $url"
+                  else
+                    echo "URL is invalid (404 or other error): $url"
+                    exit 1
                   fi
-                done
-              else
-                echo "No valid PlantUML diagrams found in $file"
-              fi
+                  # Проверяем наличие ![Diagram]
+                  if grep -A1 '``` *plantuml' "$file" | grep -q '!$$ Diagram $$'; then
+                    echo "Replacing existing ![Diagram] in $file"
+                    sed -i "/\`\`\` *plantuml/,/\`\`\`/ s|!$$ Diagram $$.*|<image-card alt="Diagram" src="$url" ></image-card>|" "$file"
+                  else
+                    echo "Appending ![Diagram] after plantuml block in $file"
+                    sed -i "/\`\`\` *plantuml/,/\`\`\`/ {/\`\`\`/ s|$|\n<image-card alt="Diagram" src="$url" ></image-card>|}" "$file"
+                  fi
+                  counter=$((counter + 1))
+                fi
+              done
             else
               echo "No PlantUML blocks or file not found: $file"
             fi
