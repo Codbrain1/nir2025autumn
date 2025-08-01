@@ -3,7 +3,7 @@ name: Render PlantUML Diagrams
 on:
   push:
     paths:
-      - 'wiki/*.md'
+      - '*.md'
 
 jobs:
   render-plantuml:
