@@ -10,7 +10,7 @@ jobs:
   render-plantuml-wiki:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # Права на запись в репозиторий и Wiki
+      contents: write
     steps:
       - name: Checkout Wiki repository
         uses: actions/checkout@v4
@@ -21,24 +21,44 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
+      - name: List Wiki files
+        run: |
+          echo "Listing files in Wiki repository:"
+          ls -la *.md || echo "No .md files found"
       - name: Process PlantUML diagrams
         run: |
           mkdir -p diagrams
           counter=0
           for file in *.md; do
-            if grep -q '```plantuml' "$file"; then
+            if [ -f "$file" ] && grep -q '```plantuml' "$file"; then
               echo "Processing $file"
               while IFS= read -r diagram; do
                 if [[ -n "$diagram" ]]; then
+                  echo "Found PlantUML diagram in $file:"
+                  echo "$diagram"
                   echo "$diagram" > temp.puml
                   encoded=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.stdin.read(), safe=''))" < temp.puml)
-                  echo "http://www.plantuml.com/plantuml/svg/~h${encoded}" >> diagrams/urls.txt
-                  sed -i "/```plantuml/,/```/s|!\[Diagram\](.*)|![Diagram](http://www.plantuml.com/plantuml/svg/~h${encoded})|" "$file"
+                  url="http://www.plantuml.com/plantuml/svg/~h${encoded}"
+                  echo "Generated URL: $url" >> diagrams/urls.txt
+                  # Проверяем, есть ли строка ![Diagram]()
+                  if grep -q '![Diagram]()' "$file"; then
+                    sed -i "/```plantuml/,/```/s|!\[Diagram\](.*)|![Diagram]($url)|" "$file"
+                  else
+                    # Если нет, добавляем после блока plantuml
+                    sed -i "/```plantuml/,/```/a ![Diagram]($url)" "$file"
+                  fi
                   counter=$((counter + 1))
                 fi
               done < <(awk '/```plantuml/{flag=1;next}/```/{flag=0}flag' "$file")
+            else
+              echo "No PlantUML blocks or file not found: $file"
             fi
           done
+          echo "Processed $counter diagrams"
+      - name: Show modified files
+        run: |
+          echo "Modified files:"
+          git status
       - name: Commit changes to Wiki
         run: |
           git config user.name "GitHub Actions Bot"
