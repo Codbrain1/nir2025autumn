@@ -41,57 +41,66 @@ jobs:
         run: |
           mkdir -p diagrams
           counter=0
-          for file in *.md; do
-            if [ -f "$file" ] && grep -q '``` *plantuml' "$file"; then
-              echo "Processing $file"
-              # Извлекаем все блоки plantuml в файл
-              awk '/``` *plantuml/{flag=1; block=""; next} /```/{if (flag) {print block >> "temp_diagrams.txt"; flag=0; next}} flag{block=block $0 "\n"}' "$file"
-              if [ -f temp_diagrams.txt ]; then
-                # Читаем блоки из файла
-                while IFS= read -r diagram || [[ -n "$diagram" ]]; do
-                  if [[ -n "$diagram" ]]; then
-                    # Очищаем блок от лишних символов
-                    cleaned_diagram=$(echo -e "$diagram" | sed 's/^[ \t]*//;s/[ \t]*$//;s/\r$//')
-                    if [[ "$cleaned_diagram" =~ @startuml.*@enduml ]]; then
-                      echo "Found PlantUML diagram in $file:"
-                      echo "$cleaned_diagram"
-                      echo -e "$cleaned_diagram" > temp.puml
-                      # Удаляем BOM и пустые строки
-                      sed -i 's/\xEF\xBB\xBF//' temp.puml
-                      sed -i '/^$/d' temp.puml
-                      # Проверяем содержимое temp.puml
-                      echo "Content of temp.puml:"
-                      cat temp.puml
-                      encoded=$(python3 -c "import zlib, base64; text = open('temp.puml', 'rb').read(); compressed = zlib.compress(text)[2:-4]; print(base64.b64encode(compressed).decode('ascii').replace('+', '-').replace('/', '_'))")
-                      url="http://www.plantuml.com/plantuml/svg/$encoded"
-                      echo "Generated URL: $url" >> diagrams/urls.txt
-                      # Проверяем доступность URL
-                      if curl --output /dev/null --silent --head --fail "$url"; then
-                        echo "URL is valid: $url"
-                      else
-                        echo "URL is invalid (404 or other error): $url"
-                        exit 1
-                      fi
-                      # Удаляем старые некорректные ![Diagram]
-                      sed -i '/!\[Diagram\]/d' "$file"
-                      # Добавляем новый ![Diagram]
-                      echo "Appending ![Diagram] after plantuml block in $file"
-                      sed -i "/\`\`\` *plantuml/,/\`\`\`/ {/\`\`\`/ s|$|\n![Diagram]($url)|}" "$file"
-                      counter=$((counter + 1))
-                    else
-                      echo "Skipping invalid or incomplete PlantUML block in $file: [$cleaned_diagram]"
-                    fi
-                  fi
-                done < temp_diagrams.txt
-                rm temp_diagrams.txt
-              else
-                echo "No PlantUML blocks found in $file"
-              fi
-            else
-              echo "No PlantUML blocks or file not found: $file"
-            fi
-          done
-          echo "Processed $counter diagrams"
+          python3 - <<EOF
+          import re
+          import zlib
+          import base64
+          import os
+          import subprocess
+
+          def encode_plantuml(text):
+              compressed = zlib.compress(text.encode())[2:-4]
+              encoded = base64.b64encode(compressed).decode('ascii').replace('+', '-').replace('/', '_')
+              return f"http://www.plantuml.com/plantuml/svg/{encoded}"
+
+          def is_valid_url(url):
+              result = subprocess.run(['curl', '--output', '/dev/null', '--silent', '--head', '--fail', url], capture_output=True)
+              return result.returncode == 0
+
+          counter = 0
+          for file in os.listdir('.'):
+              if file.endswith('.md') and os.path.isfile(file):
+                  with open(file, 'r', encoding='utf-8-sig') as f:
+                      content = f.read()
+                  if '```plantuml' not in content:
+                      print(f"No PlantUML blocks or file not found: {file}")
+                      continue
+                  print(f"Processing {file}")
+                  # Извлекаем все блоки plantuml
+                  blocks = re.findall(r'``` *plantuml\n(.*?)\n```', content, re.DOTALL)
+                  for diagram in blocks:
+                      cleaned_diagram = '\n'.join(line.strip() for line in diagram.splitlines() if line.strip())
+                      if '@startuml' in cleaned_diagram and '@enduml' in cleaned_diagram:
+                          print(f"Found PlantUML diagram in {file}:")
+                          print(cleaned_diagram)
+                          with open('temp.puml', 'w', encoding='utf-8') as f:
+                              f.write(cleaned_diagram)
+                          url = encode_plantuml(cleaned_diagram)
+                          with open('diagrams/urls.txt', 'a') as f:
+                              f.write(f"Generated URL: {url}\n")
+                          if is_valid_url(url):
+                              print(f"URL is valid: {url}")
+                          else:
+                              print(f"URL is invalid (404 or other error): {url}")
+                              exit(1)
+                          # Удаляем старые ![Diagram]
+                          content = re.sub(r'!\[Diagram\]\(.*?\)', '', content)
+                          # Проверяем наличие ![Diagram] после блока
+                          block_end = content.find(diagram) + len(diagram) + len('```\n')
+                          if content[block_end:block_end+10].startswith('![Diagram]'):
+                              print(f"Replacing existing ![Diagram] in {file}")
+                              content = re.sub(r'!\[Diagram\]\(.*?\)', f'![Diagram]({url})', content, 1)
+                          else:
+                              print(f"Appending ![Diagram] after plantuml block in {file}")
+                              content = content[:block_end] + f'![Diagram]({url})\n' + content[block_end:]
+                          with open(file, 'w', encoding='utf-8') as f:
+                              f.write(content)
+                          counter += 1
+                      else:
+                          print(f"Skipping invalid or incomplete PlantUML block in {file}: [{cleaned_diagram}]")
+                  globals()['counter'] = counter
+          print(f"Processed {counter} diagrams")
+          EOF
       - name: Show modified files
         run: |
           echo "Modified files:"
