@@ -44,14 +44,14 @@ jobs:
           for file in *.md; do
             if [ -f "$file" ] && grep -q '``` *plantuml' "$file"; then
               echo "Processing $file"
-              # Извлекаем весь блок plantuml как одну строку
-              awk '/``` *plantuml/{flag=1; block=""; next} /```/{if (flag) {print block; flag=0} next} flag{block=block $0 "\n"} END {if (flag) print block}' "$file" | while IFS= read -r diagram || [[ -n "$diagram" ]]; do
-                # Удаляем пробелы и проверяем минимальную валидность
-                cleaned_diagram=$(echo -e "$diagram" | sed 's/^[ \t]*//;s/[ \t]*$//' | tr -d '\r')
-                if [[ -n "$cleaned_diagram" && "$cleaned_diagram" == *"@startuml"* ]]; then
+              # Извлекаем весь блок plantuml
+              awk '/``` *plantuml/{flag=1; block=""; next} /```/{if (flag) {print block; flag=0} next} flag{block=block $0 "\n"}' "$file" | while IFS= read -r diagram || [[ -n "$diagram" ]]; do
+                # Очищаем блок от лишних символов
+                cleaned_diagram=$(echo -e "$diagram" | sed 's/^[ \t]*//;s/[ \t]*$//;s/\r$//' | tr -d '\n' | tr -s ' ')
+                if [[ -n "$cleaned_diagram" && "$cleaned_diagram" =~ @startuml.*@enduml ]]; then
                   echo "Found PlantUML diagram in $file:"
-                  echo "$cleaned_diagram"
-                  echo -e "$cleaned_diagram" > temp.puml
+                  echo "$diagram"
+                  echo -e "$diagram" > temp.puml
                   # Удаляем BOM, лишние пробелы и пустые строки
                   sed -i 's/\xEF\xBB\xBF//' temp.puml
                   sed -i '/^$/d' temp.puml
