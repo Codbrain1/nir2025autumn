@@ -1,0 +1,36 @@
+name: Render PlantUML Diagrams
+
+on:
+  push:
+    paths:
+      - 'wiki/*.md'
+
+jobs:
+  render-plantuml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PlantUML
+        run: sudo apt-get update && sudo apt-get install -y plantuml
+      - name: Render PlantUML diagrams
+        run: |
+          mkdir -p wiki/diagrams
+          counter=0
+          for file in wiki/*.md; do
+            if grep -q '```plantuml' "$file"; then
+              while IFS= read -r diagram; do
+                if [[ -n "$diagram" ]]; then
+                  echo "$diagram" | sed '1d;$d' > "temp.puml"
+                  plantuml -tsvg "temp.puml"
+                  mv temp.svg "wiki/diagrams/diagram_$counter.svg"
+                  counter=$((counter + 1))
+                fi
+              done < <(awk '/```plantuml/{flag=1;next}/```/{flag=0}flag' "$file")
+              sed -i "/```plantuml/,/```/s|!\[Diagram\](.*)|![Diagram](diagrams/diagram_$((counter-1)).svg)|" "$file"
+            fi
+          done
+      - name: Commit rendered diagrams
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Add rendered PlantUML diagrams"
+          file_pattern: 'wiki/*.md wiki/diagrams/*.svg'
