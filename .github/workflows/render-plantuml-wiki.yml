@@ -45,14 +45,15 @@ jobs:
             if [ -f "$file" ] && grep -q '``` *plantuml' "$file"; then
               echo "Processing $file"
               # Извлекаем весь блок plantuml как одну строку
-              awk '/``` *plantuml/{flag=1; block=""; next} /```/{if (flag) {print block; flag=0} next} flag{block=block $0 "\n"} END {if (flag) print block}' "$file" | while IFS= read -r diagram; do
-                if [[ -n "$diagram" && "$diagram" == *"@startuml"* && "$diagram" == *"@enduml"* ]]; then
+              awk '/``` *plantuml/{flag=1; block=""; next} /```/{if (flag) {print block; flag=0} next} flag{block=block $0 "\n"} END {if (flag) print block}' "$file" | while IFS= read -r diagram || [[ -n "$diagram" ]]; do
+                # Удаляем пробелы и проверяем минимальную валидность
+                cleaned_diagram=$(echo -e "$diagram" | sed 's/^[ \t]*//;s/[ \t]*$//' | tr -d '\r')
+                if [[ -n "$cleaned_diagram" && "$cleaned_diagram" == *"@startuml"* ]]; then
                   echo "Found PlantUML diagram in $file:"
-                  echo "$diagram"
-                  echo -e "$diagram" > temp.puml
+                  echo "$cleaned_diagram"
+                  echo -e "$cleaned_diagram" > temp.puml
                   # Удаляем BOM, лишние пробелы и пустые строки
                   sed -i 's/\xEF\xBB\xBF//' temp.puml
-                  sed -i 's/^[ \t]*//;s/[ \t]*$//' temp.puml
                   sed -i '/^$/d' temp.puml
                   encoded=$(python3 -c "import zlib, base64; text = open('temp.puml', 'rb').read(); compressed = zlib.compress(text)[2:-4]; print(base64.b64encode(compressed).decode('ascii').replace('+', '-').replace('/', '_'))")
                   url="http://www.plantuml.com/plantuml/svg/$encoded"
@@ -76,7 +77,7 @@ jobs:
                   fi
                   counter=$((counter + 1))
                 else
-                  echo "Skipping invalid or incomplete PlantUML block in $file"
+                  echo "Skipping invalid or incomplete PlantUML block in $file: $cleaned_diagram"
                 fi
               done
             else
