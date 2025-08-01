@@ -44,15 +44,16 @@ jobs:
           for file in *.md; do
             if [ -f "$file" ] && grep -q '``` *plantuml' "$file"; then
               echo "Processing $file"
-              # Извлекаем все блоки plantuml
-              awk '/``` *plantuml/{flag=1; block=""; next} /```/{if (flag) {print block; flag=0} next} flag{block=block $0 "\n"}' "$file" | while IFS= read -r diagram; do
-                if [[ -n "$diagram" && "$diagram" != *"!["* ]]; then
+              # Извлекаем весь блок plantuml как одну строку
+              awk '/``` *plantuml/{flag=1; block=""; next} /```/{if (flag) {print block; flag=0} next} flag{block=block $0 "\n"} END {if (flag) print block}' "$file" | while IFS= read -r diagram; do
+                if [[ -n "$diagram" && "$diagram" == *"@startuml"* && "$diagram" == *"@enduml"* ]]; then
                   echo "Found PlantUML diagram in $file:"
                   echo "$diagram"
                   echo -e "$diagram" > temp.puml
-                  # Удаляем BOM и лишние пробелы
+                  # Удаляем BOM, лишние пробелы и пустые строки
                   sed -i 's/\xEF\xBB\xBF//' temp.puml
                   sed -i 's/^[ \t]*//;s/[ \t]*$//' temp.puml
+                  sed -i '/^$/d' temp.puml
                   encoded=$(python3 -c "import zlib, base64; text = open('temp.puml', 'rb').read(); compressed = zlib.compress(text)[2:-4]; print(base64.b64encode(compressed).decode('ascii').replace('+', '-').replace('/', '_'))")
                   url="http://www.plantuml.com/plantuml/svg/$encoded"
                   echo "Generated URL: $url" >> diagrams/urls.txt
@@ -63,6 +64,8 @@ jobs:
                     echo "URL is invalid (404 or other error): $url"
                     exit 1
                   fi
+                  # Удаляем старые некорректные ![Diagram]
+                  sed -i '/!\[Diagram\](.*~h.*)/d' "$file"
                   # Проверяем наличие ![Diagram]
                   if grep -A1 '``` *plantuml' "$file" | grep -q '!$$ Diagram $$'; then
                     echo "Replacing existing ![Diagram] in $file"
@@ -72,6 +75,8 @@ jobs:
                     sed -i "/\`\`\` *plantuml/,/\`\`\`/ {/\`\`\`/ s|$|\n<image-card alt="Diagram" src="$url" ></image-card>|}" "$file"
                   fi
                   counter=$((counter + 1))
+                else
+                  echo "Skipping invalid or incomplete PlantUML block in $file"
                 fi
               done
             else
