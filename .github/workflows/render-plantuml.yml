@@ -30,7 +30,7 @@ jobs:
           mkdir -p diagrams
           counter=0
           for file in *.md; do
-            if [ -f "$file" ] && grep -q '```plantuml' "$file"; then
+            if [ -f "$file" ] && grep -q '``` *plantuml' "$file"; then
               echo "Processing $file"
               while IFS= read -r diagram; do
                 if [[ -n "$diagram" ]]; then
@@ -41,15 +41,15 @@ jobs:
                   url="http://www.plantuml.com/plantuml/svg/~h${encoded}"
                   echo "Generated URL: $url" >> diagrams/urls.txt
                   # Проверяем, есть ли строка ![Diagram]()
-                  if grep -q '![Diagram]()' "$file"; then
-                    sed -i "/```plantuml/,/```/s|!\[Diagram\](.*)|![Diagram]($url)|" "$file"
+                  if grep -A1 '``` *plantuml' "$file" | grep -q '![Diagram]()'; then
+                    sed -i "/``` *plantuml/,/```/s|!\[Diagram\]([^)]*)|![Diagram]($url)|" "$file"
                   else
-                    # Если нет, добавляем после блока plantuml
-                    sed -i "/```plantuml/,/```/a ![Diagram]($url)" "$file"
+                    # Добавляем ![Diagram](URL) после блока plantuml
+                    sed -i "/``` *plantuml/,/```/a ![Diagram]($url)" "$file"
                   fi
                   counter=$((counter + 1))
                 fi
-              done < <(awk '/```plantuml/{flag=1;next}/```/{flag=0}flag' "$file")
+              done < <(awk '/``` *plantuml/{flag=1;next}/```/{flag=0}flag' "$file")
             else
               echo "No PlantUML blocks or file not found: $file"
             fi
