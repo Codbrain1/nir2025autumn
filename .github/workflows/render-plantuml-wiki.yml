@@ -50,13 +50,13 @@ jobs:
                   encoded=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.stdin.read(), safe=''))" < temp.puml)
                   url="http://www.plantuml.com/plantuml/svg/~h${encoded}"
                   echo "Generated URL: $url" >> diagrams/urls.txt
-                  # Проверяем наличие ![Diagram]()
+                  # Проверяем наличие ![Diagram]
                   if grep -A1 '``` *plantuml' "$file" | grep -q '!\[Diagram\]'; then
                     echo "Replacing existing ![Diagram] in $file"
-                    sed -i "/\`\`\` *plantuml/,/\`\`\`/ {/\!\[Diagram\]/ s|!\[Diagram\].*|![Diagram]($url)|}" "$file"
+                    sed -i "/\`\`\` *plantuml/,/\`\`\`/ s|!\[Diagram\].*|![Diagram]($url)|" "$file"
                   else
                     echo "Appending ![Diagram] after plantuml block in $file"
-                    sed -i "/\`\`\` *plantuml/,/\`\`\`/ {/\`\`\`/a \!\[Diagram\]($url)}" "$file"
+                    sed -i "/\`\`\` *plantuml/,/\`\`\`/ {/\`\`\`/ s|$|\n![Diagram]($url)|}" "$file"
                   fi
                   counter=$((counter + 1))
                 fi
