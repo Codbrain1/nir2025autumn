@@ -1,36 +1,49 @@
-name: Render PlantUML Diagrams
+name: Render PlantUML Diagrams in Wiki
 
 on:
   push:
-    paths:
-      - '*.md'
+    branches:
+      - main  # Триггер при пуше в основную ветку
+  workflow_dispatch:  # Позволяет запускать вручную
 
 jobs:
-  render-plantuml:
+  render-plantuml-wiki:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install PlantUML
-        run: sudo apt-get update && sudo apt-get install -y plantuml
-      - name: Render PlantUML diagrams
+        with:
+          repository: ${{ github.repository }}.wiki  # Клонируем Wiki-репозиторий
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Process PlantUML diagrams
         run: |
-          mkdir -p wiki/diagrams
+          mkdir -p diagrams
           counter=0
-          for file in wiki/*.md; do
+          for file in *.md; do
             if grep -q '```plantuml' "$file"; then
               while IFS= read -r diagram; do
                 if [[ -n "$diagram" ]]; then
-                  echo "$diagram" | sed '1d;$d' > "temp.puml"
-                  plantuml -tsvg "temp.puml"
-                  mv temp.svg "wiki/diagrams/diagram_$counter.svg"
+                  # Извлекаем код PlantUML
+                  echo "$diagram" > temp.puml
+                  # Кодируем для PlantUML Server
+                  encoded=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.stdin.read()))" < temp.puml)
+                  echo "http://www.plantuml.com/plantuml/svg/~h${encoded}" > "diagrams/diagram_${counter}.url"
+                  # Обновляем Markdown
+                  sed -i "/```plantuml/,/```/s|!\[Diagram\](.*)|![Diagram](http://www.plantuml.com/plantuml/svg/~h${encoded})|" "$file"
                   counter=$((counter + 1))
                 fi
               done < <(awk '/```plantuml/{flag=1;next}/```/{flag=0}flag' "$file")
-              sed -i "/```plantuml/,/```/s|!\[Diagram\](.*)|![Diagram](diagrams/diagram_$((counter-1)).svg)|" "$file"
             fi
           done
-      - name: Commit rendered diagrams
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "Add rendered PlantUML diagrams"
-          file_pattern: 'wiki/*.md wiki/diagrams/*.svg'
+      - name: Commit changes to Wiki
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add *.md diagrams/
+          git commit -m "Update Wiki with PlantUML diagrams" || echo "No changes to commit"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
