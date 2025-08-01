@@ -44,15 +44,15 @@ int main()
         }
 
     } catch (const std::filesystem::filesystem_error& e) {
-        std::ofstream eror("error.txt");
-        eror << "Filesystem error: " << e.what() << '\n';
-        eror << "Path1: " << e.path1() << '\n';
+        std::ofstream error("error.txt");
+        error << "Filesystem error: " << e.what() << '\n';
+        error << "Path1: " << e.path1() << '\n';
         if (!e.path2().empty()) {
-            eror << "Path2: " << e.path2() << '\n';
+            error << "Path2: " << e.path2() << '\n';
         }
     }
 
-    // буффер для быстрого сохранения системы частиц
+    // буфер для быстрого сохранения системы частиц
     Buffer<double, Filetype::bin> psbuffer("results/positions", "results/conversation_laws");
     ps.SaveToBinaryFile_all(psbuffer.get_file_positions(), psbuffer.get_file_conv_laws());
 
