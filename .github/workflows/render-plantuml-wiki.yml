@@ -45,7 +45,7 @@ jobs:
             if [ -f "$file" ] && grep -q '``` *plantuml' "$file"; then
               echo "Processing $file"
               # Извлекаем весь блок plantuml как одну строку
-              diagrams=$(awk '/``` *plantuml/{flag=1; block=""; next} /```/{if (flag) {print block; flag=0; block=""} flag{block=block $0 "\n"}' "$file")
+              diagrams=$(awk '/``` *plantuml/{flag=1; block=""; next} /```/{if (flag) {print block; flag=0; block=""} next} flag{block=block $0 "\n"}' "$file")
               if [ -n "$diagrams" ]; then
                 echo "$diagrams" | while IFS= read -r diagram; do
                   if [[ -n "$diagram" && "$diagram" != *"!["* ]]; then
