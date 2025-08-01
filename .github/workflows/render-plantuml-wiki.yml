@@ -85,14 +85,9 @@ jobs:
                               exit(1)
                           # Удаляем старые ![Diagram]
                           content = re.sub(r'!\[Diagram\]\(.*?\)', '', content)
-                          # Проверяем наличие ![Diagram] после блока
+                          # Добавляем новый ![Diagram] после блока
                           block_end = content.find(diagram) + len(diagram) + len('```\n')
-                          if content[block_end:block_end+10].startswith('![Diagram]'):
-                              print(f"Replacing existing ![Diagram] in {file}")
-                              content = re.sub(r'!\[Diagram\]\(.*?\)', f'![Diagram]({url})', content, 1)
-                          else:
-                              print(f"Appending ![Diagram] after plantuml block in {file}")
-                              content = content[:block_end] + f'![Diagram]({url})\n' + content[block_end:]
+                          content = content[:block_end] + f'![Diagram]({url})\n' + content[block_end:]
                           with open(file, 'w', encoding='utf-8') as f:
                               f.write(content)
                           counter += 1
