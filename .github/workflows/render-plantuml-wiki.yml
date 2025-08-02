@@ -62,11 +62,11 @@ jobs:
                   with open(file, 'r', encoding='utf-8-sig') as f:
                       content = f.read()
                   if '```plantuml' not in content:
-                      print(f"No PlantUML blocks or file not found: {file}")
+                      print(f"No PlantUML blocks found in {file}")
                       continue
                   print(f"Processing {file}")
                   # Извлекаем все блоки plantuml
-                  blocks = re.findall(r'``` *plantuml\n(.*?)\n```', content, re.DOTALL)
+                  blocks = re.findall(r'```plantuml\n(.*?)```', content, re.DOTALL)
                   if not blocks:
                       print(f"No valid PlantUML blocks found in {file}")
                       continue
@@ -92,9 +92,11 @@ jobs:
                               exit(1)
                           # Удаляем старые ![Diagram]
                           content = re.sub(r'!\[Diagram\]\(.*?\)\n?', '', content)
+                          # Находим позицию конца блока
+                          block_start = content.find('```plantuml\n' + diagram + '```')
+                          block_end = block_start + len('```plantuml\n' + diagram + '```')
                           # Добавляем новый ![Diagram] после блока
-                          block_end = content.find(diagram) + len(diagram) + len('```\n')
-                          content = content[:block_end] + f'![Diagram]({url})\n' + content[block_end:]
+                          content = content[:block_end] + '\n![Diagram](' + url + ')\n' + content[block_end:]
                           with open(file, 'w', encoding='utf-8') as f:
                               f.write(content)
                           counter += 1
