@@ -58,51 +58,52 @@ jobs:
 
           counter = 0
           for file in os.listdir('.'):
-              if file.endswith('.md') and os.path.isfile(file):
-                  with open(file, 'r', encoding='utf-8-sig') as f:
-                      content = f.read()
-                  if '```plantuml' not in content:
-                      print(f"No PlantUML blocks found in {file}")
+              if not (file.endswith('.md') and os.path.isfile(file)):
+                  continue
+              with open(file, 'r', encoding='utf-8-sig') as f:
+                  content = f.read()
+              print(f"Processing {file}")
+              # Извлекаем все блоки plantuml
+              blocks = re.findall(r'```plantuml\n(.*?)```', content, re.DOTALL)
+              if not blocks:
+                  print(f"No valid PlantUML blocks found in {file}")
+                  continue
+              modified = False
+              for diagram in blocks:
+                  cleaned_diagram = '\n'.join(line.rstrip() for line in diagram.splitlines() if line.strip())
+                  if not ('@startuml' in cleaned_diagram and '@enduml' in cleaned_diagram):
+                      print(f"Skipping invalid or incomplete PlantUML block in {file}: [{cleaned_diagram}]")
                       continue
-                  print(f"Processing {file}")
-                  # Извлекаем все блоки plantuml
-                  blocks = re.findall(r'```plantuml\n(.*?)```', content, re.DOTALL)
-                  if not blocks:
-                      print(f"No valid PlantUML blocks found in {file}")
+                  print(f"Found PlantUML diagram in {file}:")
+                  print(cleaned_diagram)
+                  with open('temp.puml', 'w', encoding='utf-8') as f:
+                      f.write(cleaned_diagram)
+                  print("Content of temp.puml:")
+                  with open('temp.puml', 'r', encoding='utf-8') as f:
+                      print(f.read())
+                  url = encode_plantuml(cleaned_diagram)
+                  print(f"Generated URL: {url}")
+                  with open('diagrams/urls.txt', 'a', encoding='utf-8') as f:
+                      f.write(f"Generated URL: {url}\n")
+                  if not is_valid_url(url):
+                      print(f"URL is invalid (404 or other error): {url}")
+                      exit(1)
+                  print(f"URL is valid: {url}")
+                  # Удаляем старые ![Diagram]
+                  content = re.sub(r'!\[Diagram\]\(.*?\)\n?', '', content)
+                  # Находим позицию конца блока
+                  block_start = content.find('```plantuml\n' + diagram + '```')
+                  if block_start == -1:
+                      print(f"Error: Could not find block in {file}")
                       continue
-                  for diagram in blocks:
-                      cleaned_diagram = '\n'.join(line.rstrip() for line in diagram.splitlines() if line.strip())
-                      if '@startuml' in cleaned_diagram and '@enduml' in cleaned_diagram:
-                          print(f"Found PlantUML diagram in {file}:")
-                          print(cleaned_diagram)
-                          with open('temp.puml', 'w', encoding='utf-8') as f:
-                              f.write(cleaned_diagram)
-                          # Проверяем содержимое temp.puml
-                          print("Content of temp.puml:")
-                          with open('temp.puml', 'r', encoding='utf-8') as f:
-                              print(f.read())
-                          url = encode_plantuml(cleaned_diagram)
-                          print(f"Generated URL: {url}")
-                          with open('diagrams/urls.txt', 'a', encoding='utf-8') as f:
-                              f.write(f"Generated URL: {url}\n")
-                          if is_valid_url(url):
-                              print(f"URL is valid: {url}")
-                          else:
-                              print(f"URL is invalid (404 or other error): {url}")
-                              exit(1)
-                          # Удаляем старые ![Diagram]
-                          content = re.sub(r'!\[Diagram\]\(.*?\)\n?', '', content)
-                          # Находим позицию конца блока
-                          block_start = content.find('```plantuml\n' + diagram + '```')
-                          block_end = block_start + len('```plantuml\n' + diagram + '```')
-                          # Добавляем новый ![Diagram] после блока
-                          content = content[:block_end] + '\n![Diagram](' + url + ')\n' + content[block_end:]
-                          with open(file, 'w', encoding='utf-8') as f:
-                              f.write(content)
-                          counter += 1
-                      else:
-                          print(f"Skipping invalid or incomplete PlantUML block in {file}: [{cleaned_diagram}]")
-                  globals()['counter'] = counter
+                  block_end = block_start + len('```plantuml\n' + diagram + '```')
+                  # Добавляем новый ![Diagram]
+                  content = content[:block_end] + '\n![Diagram](' + url + ')\n' + content[block_end:]
+                  modified = True
+                  counter += 1
+              if modified:
+                  with open(file, 'w', encoding='utf-8') as f:
+                      f.write(content)
           print(f"Processed {counter} diagrams")
           EOF
       - name: Show modified files
